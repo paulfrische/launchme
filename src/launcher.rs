@@ -9,6 +9,11 @@ use sdl2::{
     Sdl, VideoSubsystem,
 };
 
+const WIDTH: u32 = 1000;
+const HEIGHT: u32 = 700;
+const PADDING: i32 = 12;
+const LINE_SPACING: i32 = 6;
+
 pub struct Launcher {
     options: Vec<String>,
     query: String,
@@ -30,7 +35,7 @@ impl Launcher {
             .expect("failed to initialize sdl video subsystem");
 
         let window = video
-            .window("", 1000, 700) // TODO: calculate dimensions or get them via config
+            .window("", WIDTH, HEIGHT) // TODO: calculate dimensions or get them via config
             .position_centered()
             .borderless()
             .build()
@@ -101,9 +106,7 @@ impl Launcher {
                                         let _ = self.query.pop();
                                     }
                                 }
-                                Keycode::Return => {
-                                    break 'main_loop
-                                }
+                                Keycode::Return => break 'main_loop,
                                 _ => (),
                             }
                         }
@@ -115,6 +118,14 @@ impl Launcher {
                 }
             }
 
+            // filter all options
+            self.options = self
+                .options
+                .iter()
+                .filter(|s| s.starts_with(&self.query))
+                .map(|s| String::from(s))
+                .collect();
+
             // NOTE: to render text follow this procedure:
             // - load a font via Sdl2TtfContext
             // - render text to a surface using Font::render
@@ -122,25 +133,55 @@ impl Launcher {
             // - create a texture using TextureCreator
             // - copy the texture into the target rect using Canvas::copy
 
+            // TODO: make cursor configurable
+            let mut cursor = Rect::new(PADDING, PADDING, 5, font.height() as u32);
             if !self.query.is_empty() {
                 // `blended` means something like antialiasing
                 let surface = font
                     .render(&self.query)
-                    .blended(Color::WHITE) // TODO: theming
+                    .blended(Color::CYAN) // TODO: theming
                     .expect("failed to render text");
 
-                let text_rect = Rect::new(12, 12, surface.width(), surface.height());
+                // TODO: make padding configurable
+                let text_rect = Rect::new(PADDING, PADDING, surface.width(), surface.height());
 
                 let texture = creator
                     .create_texture_from_surface(&surface)
                     .expect("failed to create texture");
 
+                cursor = Rect::new(text_rect.right(), text_rect.y, 5, text_rect.height());
+
                 let _ = self.canvas.copy(&texture, None, Some(text_rect));
             }
 
+            let mut options_to_render =
+                ((HEIGHT as i32 - 2 * PADDING) / (font.height() + LINE_SPACING) - 1) as usize;
+
+            options_to_render = options_to_render.min(self.options.len());
+
+            for i in 0..options_to_render {
+                let offset = PADDING + (font.height() + LINE_SPACING) * (i + 1) as i32;
+                let surface = font
+                    .render(
+                        self.options
+                            .get(i as usize)
+                            .expect("failed to calculate valid index"),
+                    )
+                    .blended(Color::GRAY)
+                    .expect("failed to render options");
+
+                let rect = Rect::new(PADDING, offset, surface.width(), surface.height());
+                let texture = creator
+                    .create_texture_from_surface(surface)
+                    .expect("failed to create texture");
+
+                let _ = self.canvas.copy(&texture, None, Some(rect));
+            }
+            self.canvas.set_draw_color(Color::WHITE);
+            let _ = self.canvas.fill_rect(cursor);
             self.canvas.present();
         }
-
-        self.query.clone()
+        
+        self.options.get(0).unwrap_or(&self.query).to_string()
     }
 }
