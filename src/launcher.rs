@@ -90,12 +90,18 @@ impl Launcher {
             self.canvas.clear();
 
             // filter all options
-            let filtered_options: Vec<String> = self
+            let mut filtered_options: Vec<String> = self
                 .options
                 .iter()
                 .filter(|s| s.starts_with(&self.query))
                 .map(|s| String::from(s))
                 .collect();
+
+            filtered_options.sort_by(|a, b| {
+                a.len()
+                    .partial_cmp(&b.len())
+                    .expect("couldn't order strings")
+            });
 
             for event in event_pump.poll_iter() {
                 // TODO: handle input
