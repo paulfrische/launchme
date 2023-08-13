@@ -1,3 +1,4 @@
+use font_kit::{handle::Handle, source::SystemSource};
 use sdl2::{
     event::Event,
     keyboard::{Keycode, TextInputUtil},
@@ -6,7 +7,7 @@ use sdl2::{
     render::Canvas,
     ttf,
     video::Window,
-    Sdl, VideoSubsystem,
+    Sdl,
 };
 
 const WIDTH: u32 = 1000;
@@ -61,17 +62,23 @@ impl Launcher {
 
     // TODO: better error handling
     pub fn launch(&mut self) -> Option<String> {
-        let mut result: Option<String>;
+        let result: Option<String>;
         let creator = self.canvas.texture_creator();
 
-        // TODO: use `font_kit` crate to find font families by name
-        // https://docs.rs/font-kit/latest/font_kit/index.html
-        // https://docs.rs/font-kit/latest/font_kit/handle/enum.Handle.html
-
         // TODO: make font configurable
+        let mut font_path = String::from("");
+        let source = SystemSource::new();
+        let fonts = source
+            .all_fonts()
+            .expect("failed to get a list of all fonts");
+        let selected_font = fonts.get(0).expect("no fonts found");
+        if let Handle::Path { path, .. } = selected_font {
+            font_path = path.to_str().expect("failed to get font path").to_string();
+        }
+
         let font = self
             .ttf
-            .load_font("/usr/share/fonts/TTF/IosevkaNerdFont-Regular.ttf", 16)
+            .load_font(font_path, 16)
             .expect("failed to load font");
 
         // TODO: handle theming
