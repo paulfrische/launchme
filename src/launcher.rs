@@ -18,7 +18,6 @@ pub struct Launcher {
     options: Vec<String>,
     query: String,
     context: Sdl,
-    video: VideoSubsystem,
     canvas: Canvas<Window>,
     ttf: ttf::Sdl2TtfContext,
     text: TextInputUtil,
@@ -54,7 +53,6 @@ impl Launcher {
             options,
             query: String::from(""),
             context,
-            video,
             canvas,
             ttf,
             text,
@@ -63,6 +61,7 @@ impl Launcher {
 
     // TODO: better error handling
     pub fn launch(&mut self) -> Option<String> {
+        let mut result: Option<String>;
         let creator = self.canvas.texture_creator();
 
         // TODO: use `font_kit` crate to find font families by name
@@ -90,6 +89,14 @@ impl Launcher {
             self.canvas.set_draw_color(Color::BLACK);
             self.canvas.clear();
 
+            // filter all options
+            let filtered_options: Vec<String> = self
+                .options
+                .iter()
+                .filter(|s| s.starts_with(&self.query))
+                .map(|s| String::from(s))
+                .collect();
+
             for event in event_pump.poll_iter() {
                 // TODO: handle input
                 match event {
@@ -97,7 +104,10 @@ impl Launcher {
                     | Event::KeyDown {
                         keycode: Some(Keycode::Escape),
                         ..
-                    } => return None,
+                    } => {
+                        result = None;
+                        break 'main_loop;
+                    }
                     Event::KeyDown { keycode, .. } => {
                         if let Some(key) = keycode {
                             match key {
@@ -106,7 +116,12 @@ impl Launcher {
                                         let _ = self.query.pop();
                                     }
                                 }
-                                Keycode::Return => break 'main_loop,
+                                Keycode::Return => {
+                                    result = Some(
+                                        filtered_options.get(0).unwrap_or(&self.query).to_string(),
+                                    );
+                                    break 'main_loop;
+                                }
                                 _ => (),
                             }
                         }
@@ -117,14 +132,6 @@ impl Launcher {
                     _ => {}
                 }
             }
-
-            // filter all options
-            self.options = self
-                .options
-                .iter()
-                .filter(|s| s.starts_with(&self.query))
-                .map(|s| String::from(s))
-                .collect();
 
             // NOTE: to render text follow this procedure:
             // - load a font via Sdl2TtfContext
@@ -143,27 +150,27 @@ impl Launcher {
                     .expect("failed to render text");
 
                 // TODO: make padding configurable
-                let text_rect = Rect::new(PADDING, PADDING, surface.width(), surface.height());
+                let rect = Rect::new(PADDING, PADDING, surface.width(), surface.height());
 
                 let texture = creator
                     .create_texture_from_surface(&surface)
                     .expect("failed to create texture");
 
-                cursor = Rect::new(text_rect.right(), text_rect.y, 5, text_rect.height());
+                cursor = Rect::new(rect.right(), rect.y, 5, rect.height());
 
-                let _ = self.canvas.copy(&texture, None, Some(text_rect));
+                let _ = self.canvas.copy(&texture, None, Some(rect));
             }
 
             let mut options_to_render =
                 ((HEIGHT as i32 - 2 * PADDING) / (font.height() + LINE_SPACING) - 1) as usize;
 
-            options_to_render = options_to_render.min(self.options.len());
+            options_to_render = options_to_render.min(filtered_options.len());
 
             for i in 0..options_to_render {
                 let offset = PADDING + (font.height() + LINE_SPACING) * (i + 1) as i32;
                 let surface = font
                     .render(
-                        self.options
+                        filtered_options
                             .get(i as usize)
                             .expect("failed to calculate valid index"),
                     )
@@ -181,7 +188,9 @@ impl Launcher {
             let _ = self.canvas.fill_rect(cursor);
             self.canvas.present();
         }
-        
-        Some(self.options.get(0).unwrap_or(&self.query).to_string())
+
+        self.canvas.window_mut().hide();
+
+        result
     }
 }
