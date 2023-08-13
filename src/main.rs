@@ -1,6 +1,8 @@
 mod system;
+mod launcher;
 
-#[allow(unused)]
 fn main() {
-    dbg!(system::executables());
+    let executables = system::executables();
+    let program = launcher::Launcher::new(executables).launch();
+    system::run(program);
 }

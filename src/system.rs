@@ -1,4 +1,4 @@
-use std::{env, fs};
+use std::{env, fs, process};
 
 pub fn executables() -> Vec<String> {
     let path = match env::var("PATH") {
@@ -23,4 +23,8 @@ pub fn executables() -> Vec<String> {
     });
 
     executables
+}
+
+pub fn run(program: impl ToString) {
+    let _ = process::Command::new::<String>(program.to_string()).spawn();
 }
