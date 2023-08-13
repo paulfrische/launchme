@@ -26,5 +26,5 @@ pub fn executables() -> Vec<String> {
 }
 
 pub fn run(program: impl ToString) {
-    let _ = process::Command::new::<String>(program.to_string()).spawn();
+    let _ = process::Command::new::<String>(program.to_string()).output().expect(&format!("failed to run {}", program.to_string()));
 }
