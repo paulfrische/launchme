@@ -1,9 +1,17 @@
-use sdl2::{event::Event, keyboard::Keycode, pixels::Color, Sdl, VideoSubsystem};
+use sdl2::{
+    event::Event,
+    keyboard::{Keycode, TextInputUtil},
+    pixels::Color,
+    rect::Rect,
+    ttf, Sdl, VideoSubsystem,
+};
 
 pub struct Launcher {
     options: Vec<String>,
     context: Sdl,
     video: VideoSubsystem,
+    ttf: ttf::Sdl2TtfContext,
+    text: TextInputUtil,
 }
 
 impl Launcher {
@@ -13,15 +21,30 @@ impl Launcher {
         let video = context
             .video()
             .expect("failed to initialize sdl video subsystem");
+        let ttf = ttf::init().expect("failed to create sdl ttf context");
+        let text = video.text_input();
 
         Self {
             options,
             context,
             video,
+            ttf,
+            text,
         }
     }
 
     pub fn launch(&self) -> String {
+        // NOTE: to render text follow this procedure:
+        // - load a font via Sdl2TtfContext
+        // - render text to a surface using Font::render
+        // - create a target rect (use Surface::width and Surface::height)
+        // - create a texture using TextureCreator
+        // - copy the texture into the target rect using Canvas::copy
+
+        // TODO: use `font_kit` crate to find font families by name
+        // https://docs.rs/font-kit/latest/font_kit/index.html
+        // https://docs.rs/font-kit/latest/font_kit/handle/enum.Handle.html
+
         // TODO: better error handling
         let window = self
             .video
@@ -35,6 +58,26 @@ impl Launcher {
             .into_canvas()
             .build()
             .expect("failed to create canvas");
+
+        let creator = canvas.texture_creator();
+
+        // TODO: make font configurable
+        let font = self
+            .ttf
+            .load_font("/usr/share/fonts/TTF/IosevkaNerdFont-Regular.ttf", 16)
+            .expect("failed to load font");
+
+
+        let surface = font
+            .render("Hello World!")
+            .solid(Color::WHITE)
+            .expect("failed to render text");
+
+        let text_rect = Rect::new(12, 12, surface.width(), surface.height());
+
+        let texture = creator
+            .create_texture_from_surface(&surface)
+            .expect("failed to create texture");
 
         // TODO: handle theming
         canvas.set_draw_color(Color::BLACK);
@@ -62,6 +105,8 @@ impl Launcher {
             }
 
             // TODO: handle input
+
+            let _ = canvas.copy(&texture, None, Some(text_rect));
 
             canvas.present();
         }
