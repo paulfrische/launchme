@@ -3,6 +3,7 @@ mod launcher;
 
 fn main() {
     let executables = system::executables();
-    let program = launcher::Launcher::new(executables).launch();
-    system::run(program);
+    if let Some(program) = launcher::Launcher::new(executables).launch() {
+        system::run(program);
+    }
 }

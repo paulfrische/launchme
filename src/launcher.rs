@@ -62,7 +62,7 @@ impl Launcher {
     }
 
     // TODO: better error handling
-    pub fn launch(&mut self) -> String {
+    pub fn launch(&mut self) -> Option<String> {
         let creator = self.canvas.texture_creator();
 
         // TODO: use `font_kit` crate to find font families by name
@@ -97,7 +97,7 @@ impl Launcher {
                     | Event::KeyDown {
                         keycode: Some(Keycode::Escape),
                         ..
-                    } => break 'main_loop,
+                    } => return None,
                     Event::KeyDown { keycode, .. } => {
                         if let Some(key) = keycode {
                             match key {
@@ -182,6 +182,6 @@ impl Launcher {
             self.canvas.present();
         }
         
-        self.options.get(0).unwrap_or(&self.query).to_string()
+        Some(self.options.get(0).unwrap_or(&self.query).to_string())
     }
 }
