@@ -10,13 +10,18 @@ use sdl2::{
     Sdl,
 };
 
-const WIDTH: u32 = 1000;
-const HEIGHT: u32 = 700;
-const PADDING: i32 = 12;
-const LINE_SPACING: i32 = 6;
+use super::config;
+
+impl From<config::Color> for Color {
+    fn from(value: config::Color) -> Self {
+        let config::Color::RGB(r, g, b) = value;
+        return Self::RGB(r, g, b);
+    }
+}
 
 pub struct Launcher {
     options: Vec<String>,
+    config: config::Config,
     query: String,
     context: Sdl,
     canvas: Canvas<Window>,
@@ -25,7 +30,7 @@ pub struct Launcher {
 }
 
 impl Launcher {
-    pub fn new(options: Vec<impl ToString>) -> Self {
+    pub fn new(options: Vec<impl ToString>, config: config::Config) -> Self {
         let options = options.iter().map(|s| s.to_string()).collect();
 
         let context = sdl2::init().expect("failed to create sdl context");
@@ -35,7 +40,7 @@ impl Launcher {
             .expect("failed to initialize sdl video subsystem");
 
         let window = video
-            .window("", WIDTH, HEIGHT) // TODO: calculate dimensions or get them via config
+            .window("", config.width as u32, config.height as u32)
             .position_centered()
             .borderless()
             .build()
@@ -52,6 +57,7 @@ impl Launcher {
 
         Self {
             options,
+            config,
             query: String::from(""),
             context,
             canvas,
@@ -81,8 +87,7 @@ impl Launcher {
             .load_font(font_path, 16)
             .expect("failed to load font");
 
-        // TODO: handle theming
-        self.canvas.set_draw_color(Color::BLACK);
+        self.canvas.set_draw_color(self.config.background);
         self.canvas.clear();
         self.canvas.present();
 
@@ -93,7 +98,7 @@ impl Launcher {
 
         self.text.start();
         'main_loop: loop {
-            self.canvas.set_draw_color(Color::BLACK);
+            self.canvas.set_draw_color(self.config.background);
             self.canvas.clear();
 
             // filter all options
@@ -154,16 +159,26 @@ impl Launcher {
             // - copy the texture into the target rect using Canvas::copy
 
             // TODO: make cursor configurable
-            let mut cursor = Rect::new(PADDING, PADDING, 5, font.height() as u32);
+            let mut cursor = Rect::new(
+                self.config.padding,
+                self.config.padding,
+                5,
+                font.height() as u32,
+            );
             if !self.query.is_empty() {
                 // `blended` means something like antialiasing
                 let surface = font
                     .render(&self.query)
-                    .blended(Color::CYAN) // TODO: theming
+                    .blended(self.config.input)
                     .expect("failed to render text");
 
                 // TODO: make padding configurable
-                let rect = Rect::new(PADDING, PADDING, surface.width(), surface.height());
+                let rect = Rect::new(
+                    self.config.padding,
+                    self.config.padding,
+                    surface.width(),
+                    surface.height(),
+                );
 
                 let texture = creator
                     .create_texture_from_surface(&surface)
@@ -174,13 +189,15 @@ impl Launcher {
                 let _ = self.canvas.copy(&texture, None, Some(rect));
             }
 
-            let mut options_to_render =
-                ((HEIGHT as i32 - 2 * PADDING) / (font.height() + LINE_SPACING) - 1) as usize;
+            let mut options_to_render = ((self.config.height - 2 * self.config.padding)
+                / (font.height() + self.config.line_spacing)
+                - 1) as usize;
 
             options_to_render = options_to_render.min(filtered_options.len());
 
             for i in 0..options_to_render {
-                let offset = PADDING + (font.height() + LINE_SPACING) * (i + 1) as i32;
+                let offset = self.config.padding
+                    + (font.height() + self.config.line_spacing) * (i + 1) as i32;
                 let surface = font
                     .render(
                         filtered_options
@@ -190,14 +207,19 @@ impl Launcher {
                     .blended(Color::GRAY)
                     .expect("failed to render options");
 
-                let rect = Rect::new(PADDING, offset, surface.width(), surface.height());
+                let rect = Rect::new(
+                    self.config.padding,
+                    offset,
+                    surface.width(),
+                    surface.height(),
+                );
                 let texture = creator
                     .create_texture_from_surface(surface)
                     .expect("failed to create texture");
 
                 let _ = self.canvas.copy(&texture, None, Some(rect));
             }
-            self.canvas.set_draw_color(Color::WHITE);
+            self.canvas.set_draw_color(self.config.cursor);
             let _ = self.canvas.fill_rect(cursor);
             self.canvas.present();
         }

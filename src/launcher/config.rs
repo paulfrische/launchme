@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum Color {
     RGB(u8, u8, u8),
 }
@@ -20,7 +20,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn load(content: String) -> Result<String, ron::error::SpannedError> {
+    pub fn load(content: String) -> Result<Self, ron::error::SpannedError> {
         ron::from_str(&content)
     }
 
