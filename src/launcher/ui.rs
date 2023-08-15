@@ -116,7 +116,6 @@ impl Launcher {
             });
 
             for event in event_pump.poll_iter() {
-                // TODO: handle input
                 match event {
                     Event::Quit { .. }
                     | Event::KeyDown {
@@ -172,7 +171,6 @@ impl Launcher {
                     .blended(self.config.input)
                     .expect("failed to render text");
 
-                // TODO: make padding configurable
                 let rect = Rect::new(
                     self.config.padding,
                     self.config.padding,
