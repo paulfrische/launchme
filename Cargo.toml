@@ -1,5 +1,5 @@
 [package]
-name = "launcher"
+name = "launchme"
 version = "0.1.0"
 edition = "2021"
 description = "A simple software launcher for linux. Inspired by rofi and dmenu."
