@@ -1,4 +1,5 @@
 use font_kit::{handle::Handle, source::SystemSource};
+use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use sdl2::{
     event::Event,
     keyboard::{Keycode, TextInputUtil},
@@ -96,6 +97,8 @@ impl Launcher {
             .event_pump()
             .expect("failed to create event pump");
 
+        let matcher = SkimMatcherV2::default();
+
         self.text.start();
         'main_loop: loop {
             self.canvas.set_draw_color(self.config.background);
@@ -105,7 +108,7 @@ impl Launcher {
             let mut filtered_options: Vec<String> = self
                 .options
                 .iter()
-                .filter(|s| s.starts_with(&self.query))
+                .filter(|s| matcher.fuzzy_indices(s, &self.query).is_some())
                 .map(|s| String::from(s))
                 .collect();
 

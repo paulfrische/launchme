@@ -14,3 +14,4 @@ ron = "0.8.0"
 clap = { version = "4.3.21", features = ["derive"] }
 sdl2 = { version = "0.35.2", features = ["default", "ttf"] }
 serde = { version = "1.0.183", features = ["derive"] }
+fuzzy-matcher = "0.3.7"
